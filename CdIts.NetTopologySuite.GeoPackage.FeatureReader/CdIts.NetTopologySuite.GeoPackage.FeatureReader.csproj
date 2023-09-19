@@ -8,7 +8,7 @@
         <RepositoryUrl>https://github.com/claasd/NetTopologySuite.GeoPackage.FeatureReader.git</RepositoryUrl>
         <Authors>claasd</Authors>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <Description>Extension for Npgsql that adds AAD authentication using the PeriodicPasswordProvider</Description>
+        <Description>Extension for NetTopologySuite to read a geoPackage into a list of Features.</Description>
         <TargetFrameworks>net7.0;net6.0;netstandard2.0;netstandard2.1;netcoreapp3.1</TargetFrameworks>
     </PropertyGroup>
 
