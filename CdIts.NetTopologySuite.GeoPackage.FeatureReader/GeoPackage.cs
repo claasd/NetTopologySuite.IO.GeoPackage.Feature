@@ -1,10 +1,9 @@
 ﻿using Dapper;
 using Microsoft.Data.Sqlite;
 using NetTopologySuite.Features;
-using NetTopologySuite.Geometries.Utilities;
 using NetTopologySuite.IO;
 
-namespace CdIts.NetTopologySuite.GeoPackageFeatureReader;
+namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
 
 public class GeoPackage : IDisposable
 {

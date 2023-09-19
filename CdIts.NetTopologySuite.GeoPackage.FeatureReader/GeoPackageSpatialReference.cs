@@ -1,4 +1,4 @@
-﻿namespace CdIts.NetTopologySuite.GeoPackageFeatureReader;
+﻿namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
 
 public class GeoPackageSpatialReference
 {

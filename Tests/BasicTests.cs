@@ -1,4 +1,4 @@
-using CdIts.NetTopologySuite.GeoPackageFeatureReader;
+using CdIts.NetTopologySuite.GeoPackage.FeatureReader;
 using FluentAssertions;
 
 namespace Tests;
@@ -10,7 +10,7 @@ public class BasicTests
     {
         var content = GeoPackage.ReadGeoPackage("example.gpkg");
         content.Should().HaveCount(8);
-        var testLayer = content.FirstOrDefault(layer=>layer.Info.TableName == "point1");
+        var testLayer = content.FirstOrDefault(layer => layer.Info.TableName == "point1");
         testLayer.Should().NotBeNull();
         testLayer!.Info.SrsId.Should().Be(4326);
         testLayer.Features.Should().HaveCount(4);

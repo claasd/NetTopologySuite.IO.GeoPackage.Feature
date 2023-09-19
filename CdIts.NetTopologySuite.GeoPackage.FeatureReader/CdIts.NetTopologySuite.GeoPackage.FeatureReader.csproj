@@ -1,10 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>CdIts.NetTopologySuite.GeoPackageFeatureReader</RootNamespace>
+        <IsPackable>true</IsPackable>
+        <RepositoryUrl>https://github.com/claasd/NetTopologySuite.GeoPackage.FeatureReader.git</RepositoryUrl>
+        <Authors>claasd</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Description>Extension for Npgsql that adds AAD authentication using the PeriodicPasswordProvider</Description>
+        <TargetFrameworks>net7.0;net6.0;netstandard2.0;netstandard2.1;netcoreapp3.1</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>

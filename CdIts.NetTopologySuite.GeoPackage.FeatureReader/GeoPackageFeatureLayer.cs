@@ -1,6 +1,6 @@
 ﻿using NetTopologySuite.Features;
 
-namespace CdIts.NetTopologySuite.GeoPackageFeatureReader;
+namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
 
 public class GeoPackageFeatureLayer
 {
