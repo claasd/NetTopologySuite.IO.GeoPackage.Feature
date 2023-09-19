@@ -1,5 +1,5 @@
 # NetTopologySuite.GeoPackage.FeatureReader
-Extension for NetTopologySuite to read a geoPackage into a list fo Features.
+Extension for NetTopologySuite to read a geoPackage into a list of Features.
 Uses [Microsoft.Data.Sqlite](https://learn.microsoft.com/de-de/dotnet/standard/data/sqlite/?tabs=netcore-cli) and [Dapper](https://github.com/DapperLib/Dapper) to read SqLite data, and [NetTopologySuite.IO.GeoPackage](https://github.com/NetTopologySuite/NetTopologySuite.IO.SpatiaLite) to transform the actual GeoData.
 ## Usage:
 The most simple usage is to use the static read method, that returs all GeoPackage features layers
