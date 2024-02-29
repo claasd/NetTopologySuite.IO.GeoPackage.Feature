@@ -1,5 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NetTopologySuite.Features;
 using NetTopologySuite.IO;
 
@@ -8,10 +10,18 @@ namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
 public class GeoPackage : IDisposable
 {
     private readonly SqliteConnection _conn;
+    private readonly ILogger _logger;
+    private readonly bool _failOnInvalidShapes;
 
-    public GeoPackage(string path)
+    public GeoPackage(string path) : this(path, false, null)
     {
-        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+    }
+
+    public GeoPackage(string path, bool failOnInvalidShapes, ILogger? logger = null)
+    {
+        _logger = logger ?? NullLogger.Instance;
+        _failOnInvalidShapes = failOnInvalidShapes;
+        DefaultTypeMap.MatchNamesWithUnderscores = true;
         _conn = new SqliteConnection($"Data Source={path}");
         _conn.Open();
     }
@@ -33,26 +43,42 @@ public class GeoPackage : IDisposable
         var lines = _conn.Query($@"SELECT * FROM ""{tableName}""");
         return lines.Select(data =>
         {
-            var line = data as IDictionary<string, object>;
-            var geoBytes = line[geoColumn] as byte[];
-            var geo = reader.Read(geoBytes);
-            var attributes = line.Keys.Where(k => k != geoColumn).ToDictionary(k => k, k => line[k]);
-            return new Feature(geo, new AttributesTable(attributes));
-        }).ToArray();
+            try
+            {
+                var line = data as IDictionary<string, object>;
+                var geoBytes = line[geoColumn] as byte[];
+                if (geoBytes is null)
+                    throw new ArgumentNullException(geoColumn, "Geometry column is null");
+                var geo = reader.Read(geoBytes);
+                var attributes = line.Keys.Where(k => k != geoColumn).ToDictionary(k => k, k => line[k]);
+                return new Feature(geo, new AttributesTable(attributes));
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning("Error: {Message} in feature '{TableName}'", e.Message, tableName);
+                if(_failOnInvalidShapes)
+                    throw;
+                return null;
+            }
+        }).Where(f => f != null).ToArray();
     }
 
-    public static IList<GeoPackageFeatureLayer> ReadGeoPackage(string path)
+
+    public static IList<GeoPackageFeatureLayer> ReadGeoPackage(string path) => ReadGeoPackage(path, false);
+
+    public static IList<GeoPackageFeatureLayer> ReadGeoPackage(string path, bool failOnInvalidShapes, ILogger? logger = null)
     {
         var result = new List<GeoPackageFeatureLayer>();
-        var package = new GeoPackage(path);
+        using var package = new GeoPackage(path, failOnInvalidShapes, logger);
         var infos = package.GetFeatureInfos();
-        var srs = package.GetSpatialReferenceSystems().ToLookup(item=>item.SrsId);
+        var srs = package.GetSpatialReferenceSystems().ToLookup(item => item.SrsId);
         foreach (var featureInfo in infos)
         {
             var features = package.ReadFeatures(featureInfo.TableName);
             var layer = new GeoPackageFeatureLayer(featureInfo, features, srs[featureInfo.SrsId].FirstOrDefault());
             result.Add(layer);
         }
+
         return result;
     }
 
