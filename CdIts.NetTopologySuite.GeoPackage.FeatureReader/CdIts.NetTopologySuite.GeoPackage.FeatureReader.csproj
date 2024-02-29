@@ -15,7 +15,7 @@
     <ItemGroup>
       <PackageReference Include="Dapper" Version="2.0.151" />
       <PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.11" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
       <PackageReference Include="NetTopologySuite" Version="2.5.0" />
       <PackageReference Include="NetTopologySuite.Features" Version="2.1.0" />
       <PackageReference Include="NetTopologySuite.IO.GeoPackage" Version="2.0.0" />
