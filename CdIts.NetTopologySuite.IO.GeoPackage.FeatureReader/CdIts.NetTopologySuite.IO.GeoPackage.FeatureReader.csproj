@@ -24,9 +24,4 @@
     <ItemGroup>
       <ProjectReference Include="..\CdIts.NetTopologySuite.IO.GeoPackage.Features\CdIts.NetTopologySuite.IO.GeoPackage.Features.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\CdIts.NetTopologySuite.IO.GeoPackage.Features\CdIts.NetTopologySuite.IO.GeoPackage.Features.csproj" />
-    </ItemGroup>
-
 </Project>
