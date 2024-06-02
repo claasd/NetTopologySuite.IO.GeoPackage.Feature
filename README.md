@@ -7,7 +7,7 @@ Library to read and write GeoPackage files with NetTopologySuite.
 
 # CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader
 
-[![Nuget](https://img.shields.io/nuget/v/CdIts.Caffoa.Json.NetCdIts.NetTopologySuite.IO.GeoPackage.FeatureReader)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader/)
+[![Nuget](https://img.shields.io/nuget/v/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader/)
 [![Nuget](https://img.shields.io/nuget/vpre/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader/)
 
 
@@ -34,8 +34,8 @@ var features = package.ReadFeature("tableName");
 
 # CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter
 
-[![Nuget](https://img.shields.io/nuget/v/CdIts.Caffoa.Json.NetCdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader/)
-[![Nuget](https://img.shields.io/nuget/vpre/CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader/)
+[![Nuget](https://img.shields.io/nuget/v/CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter/)
+[![Nuget](https://img.shields.io/nuget/vpre/CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter)](https://www.nuget.org/packages/CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter/)
 
 Extensions for NetTopologySuite to write a list of Features into a GeoPackage.
 Uses [Microsoft.Data.Sqlite](https://learn.microsoft.com/de-de/dotnet/standard/data/sqlite/?tabs=netcore-cli) and [Dapper](https://github.com/DapperLib/Dapper) to write SqLite data, and [NetTopologySuite.IO.GeoPackage](https://github.com/NetTopologySuite/NetTopologySuite.IO.SpatiaLite) to transform the actual GeoData.
