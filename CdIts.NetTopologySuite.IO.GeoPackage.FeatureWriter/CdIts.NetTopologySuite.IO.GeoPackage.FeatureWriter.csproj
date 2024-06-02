@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <RepositoryUrl>https://github.com/claasd/NetTopologySuite.IO.GeoPackage.Feature.git</RepositoryUrl>
+        <Authors>claasd</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Description>Extension for NetTopologySuite to write features into geoPackage.</Description>
+        <TargetFrameworks>net6.0;net7.0;net8.0;netstandard2.1</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CdIts.NetTopologySuite.IO.GeoPackage.Features\CdIts.NetTopologySuite.IO.GeoPackage.Features.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="template.gpkg"/>
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Dapper" Version="2.0.151" />
+      <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="7.0.11" />
+      <PackageReference Include="NetTopologySuite.IO.GeoPackage" Version="2.0.0" />
+    </ItemGroup>
+</Project>

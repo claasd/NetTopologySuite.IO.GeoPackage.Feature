@@ -1,23 +1,24 @@
-﻿using Dapper;
+﻿using CdIts.NetTopologySuite.IO.GeoPackage.Features;
+using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NetTopologySuite.Features;
 using NetTopologySuite.IO;
 
-namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
+namespace CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader;
 
-public class GeoPackage : IDisposable
+public class GeoPackageFeatureReader : IDisposable
 {
     private readonly SqliteConnection _conn;
     private readonly ILogger _logger;
     private readonly bool _failOnInvalidShapes;
 
-    public GeoPackage(string path) : this(path, false, null)
+    public GeoPackageFeatureReader(string path) : this(path, false, null)
     {
     }
 
-    public GeoPackage(string path, bool failOnInvalidShapes, ILogger? logger = null)
+    public GeoPackageFeatureReader(string path, bool failOnInvalidShapes, ILogger? logger = null)
     {
         _logger = logger ?? NullLogger.Instance;
         _failOnInvalidShapes = failOnInvalidShapes;
@@ -56,7 +57,7 @@ public class GeoPackage : IDisposable
             catch (Exception e)
             {
                 _logger.LogWarning("Error: {Message} in feature '{TableName}'", e.Message, tableName);
-                if(_failOnInvalidShapes)
+                if (_failOnInvalidShapes)
                     throw;
                 return null;
             }
@@ -69,7 +70,7 @@ public class GeoPackage : IDisposable
     public static IList<GeoPackageFeatureLayer> ReadGeoPackage(string path, bool failOnInvalidShapes, ILogger? logger = null)
     {
         var result = new List<GeoPackageFeatureLayer>();
-        using var package = new GeoPackage(path, failOnInvalidShapes, logger);
+        using var package = new GeoPackageFeatureReader(path, failOnInvalidShapes, logger);
         var infos = package.GetFeatureInfos();
         var srs = package.GetSpatialReferenceSystems().ToLookup(item => item.SrsId);
         foreach (var featureInfo in infos)

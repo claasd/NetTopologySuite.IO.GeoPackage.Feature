@@ -1,11 +1,12 @@
 ﻿using NetTopologySuite.Geometries;
 
-namespace CdIts.NetTopologySuite.GeoPackage.FeatureReader;
+namespace CdIts.NetTopologySuite.IO.GeoPackage.Features;
 
 public class GeoPackageFeatureInfo
 {
     public string TableName { get; set; }
     public string Identifier { get; set; }
+    public string DataType => "features";
     public string Description { get; set; }
     public double MinX { get; set; }
     public double MaxX { get; set; }

@@ -24,7 +24,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CdIts.NetTopologySuite.GeoPackage.FeatureReader\CdIts.NetTopologySuite.GeoPackage.FeatureReader.csproj" />
+      <ProjectReference Include="..\CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader\CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader.csproj" />
+      <ProjectReference Include="..\CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter\CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter.csproj" />
     </ItemGroup>
 
 </Project>
