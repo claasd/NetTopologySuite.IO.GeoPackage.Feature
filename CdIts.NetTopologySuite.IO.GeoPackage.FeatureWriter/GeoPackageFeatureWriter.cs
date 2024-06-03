@@ -88,7 +88,7 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
             throw new ArgumentException("srsId must be registered before using it", nameof(srsId));
         var firstFeature = features.First();
         var fieldNames = ConvertFieldNames(firstFeature.Attributes);
-        var idField = fieldNames.Keys.FirstOrDefault(p => p.Equals(idFieldName, StringComparison.InvariantCulture));
+        var idField = fieldNames.Keys.FirstOrDefault(p => p.Equals(idFieldName, StringComparison.OrdinalIgnoreCase));
         if (idField is null)
             throw new ArgumentException($"attributes must contain a filed named '{idFieldName}' that will be used as primary key", nameof(features));
         var idType = fieldNames[idField];
