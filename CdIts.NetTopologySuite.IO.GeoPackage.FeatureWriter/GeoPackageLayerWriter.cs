@@ -28,11 +28,11 @@ internal class GeoPackageLayerWriter
         _fieldNames = fieldNames;
     }
 
-    internal async Task CreateTableAsync(string geometryType)
+    internal async Task CreateTableAsync(GeoPackageFeatureWriter.Types idType, string geometryType)
     {
         var createTable =
             new StringBuilder(
-                $@"CREATE TABLE  ""{_layerName}"" (""{_idField}"" INTEGER PRIMARY KEY, ""{_geometryFieldName}"" {geometryType.ToUpper()}");
+                $@"CREATE TABLE  ""{_layerName}"" (""{_idField}"" {idType.ToString().ToUpper()} PRIMARY KEY, ""{_geometryFieldName}"" {geometryType.ToUpper()}");
         foreach (var (name, type) in _fieldNames)
         {
             createTable.Append($@", ""{name}"" {type.ToString().ToUpper()}");
@@ -58,16 +58,16 @@ internal class GeoPackageLayerWriter
     {
         var insert = CreateInsertStatement();
         var bbox = new Envelope();
+        var parameters = new List<DynamicParameters>(features.Count);
         foreach (var feature in features)
         {
             bbox = bbox.ExpandedBy(feature.BoundingBox ?? feature.Geometry.EnvelopeInternal);
-            var parameters = ToSqlInsertData(feature);
-            await _conn.ExecuteAsync(insert, parameters);
+            parameters.Add(ToSqlInsertData(feature));
         }
-
+        await _conn.ExecuteAsync(insert, parameters);
         return bbox;
     }
-
+    
     private DynamicParameters ToSqlInsertData(Feature feature)
     {
         var writer = new GeoPackageGeoWriter();
@@ -113,4 +113,6 @@ internal class GeoPackageLayerWriter
             "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id, min_x, min_y, max_x, max_y) VALUES (@TableName, 'features', @TableName, @SrsId, @MinX, @MinY, @MaxX, @MaxY)",
             new { TableName = _layerName, SrsId = _srsId, bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY });
     }
+
+    
 }
