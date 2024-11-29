@@ -85,6 +85,7 @@ public class GeoPackageFeatureReader : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearPool(_conn);
         _conn.Dispose();
     }
 }
