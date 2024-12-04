@@ -46,10 +46,10 @@ public class GeoPackageFeatureReader : IDisposable
         {
             try
             {
-                var line = data as IDictionary<string, object>;
-                var geoBytes = line[geoColumn] as byte[];
-                if (geoBytes is null)
+                if (data is not IDictionary<string, object> line || line[geoColumn] is not byte[] geoBytes)
+                {
                     throw new ArgumentNullException(geoColumn, "Geometry column is null");
+                }
                 var geo = reader.Read(geoBytes);
                 var attributes = line.Keys.Where(k => k != geoColumn).ToDictionary(k => k, k => line[k]);
                 return new Feature(geo, new AttributesTable(attributes));
@@ -61,7 +61,7 @@ public class GeoPackageFeatureReader : IDisposable
                     throw;
                 return null;
             }
-        }).Where(f => f != null).ToArray();
+        }).Where(f => f != null).Select(f => f!).ToArray();
     }
 
 
@@ -85,6 +85,7 @@ public class GeoPackageFeatureReader : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearPool(_conn);
         _conn.Dispose();
     }
 }

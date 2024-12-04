@@ -34,28 +34,28 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         _conn.Open();
     }
 
-    public async Task CloseAsync(bool clearAllPools = false)
+    public async Task CloseAsync()
     {
+        SqliteConnection.ClearPool(_conn);
         await _conn.CloseAsync();
-        if(clearAllPools)
-            SqliteConnection.ClearAllPools();
     }
 
-    public void Close(bool clearAllPools = false)
+    public void Close()
     {
+        SqliteConnection.ClearPool(_conn);
         _conn.Close();
-        if(clearAllPools)
-            SqliteConnection.ClearAllPools();
     }
 
     public void Dispose()
     {
+        SqliteConnection.ClearPool(_conn);
         _conn.Dispose();
     }
 
 
     public async ValueTask DisposeAsync()
     {
+        SqliteConnection.ClearPool(_conn);
         await _conn.DisposeAsync();
     }
 
