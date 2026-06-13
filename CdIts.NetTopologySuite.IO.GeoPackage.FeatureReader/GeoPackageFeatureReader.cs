@@ -10,7 +10,7 @@ namespace CdIts.NetTopologySuite.IO.GeoPackage.FeatureReader;
 
 public class GeoPackageFeatureReader : IDisposable
 {
-    private readonly SqliteConnection _conn;
+    public SqliteConnection Connection { get; }
     private readonly ILogger _logger;
     private readonly bool _failOnInvalidShapes;
 
@@ -23,14 +23,14 @@ public class GeoPackageFeatureReader : IDisposable
         _logger = logger ?? NullLogger.Instance;
         _failOnInvalidShapes = failOnInvalidShapes;
         DefaultTypeMap.MatchNamesWithUnderscores = true;
-        _conn = new SqliteConnection($"Data Source={path}");
-        _conn.Open();
+        Connection = new SqliteConnection($"Data Source={path}");
+        Connection.Open();
     }
 
     public IList<GeoPackageFeatureInfo> GetFeatureInfos()
     {
-        var contents = _conn.Query<GeoPackageFeatureInfo>("SELECT * FROM gpkg_contents WHERE data_type = 'features'").AsList();
-        var geoInfo = _conn.Query<GeoPackageGeometryInfo>("SELECT * FROM gpkg_geometry_columns").AsList();
+        var contents = Connection.Query<GeoPackageFeatureInfo>("SELECT * FROM gpkg_contents WHERE data_type = 'features'").AsList();
+        var geoInfo = Connection.Query<GeoPackageGeometryInfo>("SELECT * FROM gpkg_geometry_columns").AsList();
         foreach (var info in contents)
         {
             info.GeometryInfo = geoInfo.FirstOrDefault(x => x.TableName == info.TableName);
@@ -38,13 +38,13 @@ public class GeoPackageFeatureReader : IDisposable
         return contents;
     }
 
-    public IList<GeoPackageSpatialReference> GetSpatialReferenceSystems() => _conn.Query<GeoPackageSpatialReference>("SELECT * FROM gpkg_spatial_ref_sys").AsList();
+    public IList<GeoPackageSpatialReference> GetSpatialReferenceSystems() => Connection.Query<GeoPackageSpatialReference>("SELECT * FROM gpkg_spatial_ref_sys").AsList();
 
     public Feature[] ReadFeatures(string tableName)
     {
-        var geoColumn = _conn.QuerySingle<string>("SELECT column_name FROM gpkg_geometry_columns WHERE table_name = @tableName", new { tableName });
+        var geoColumn = Connection.QuerySingle<string>("SELECT column_name FROM gpkg_geometry_columns WHERE table_name = @tableName", new { tableName });
         var reader = new GeoPackageGeoReader();
-        var lines = _conn.Query($@"SELECT * FROM ""{tableName}""");
+        var lines = Connection.Query($@"SELECT * FROM ""{tableName}""");
         return lines.Select(data =>
         {
             try
@@ -88,7 +88,7 @@ public class GeoPackageFeatureReader : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearPool(_conn);
-        _conn.Dispose();
+        SqliteConnection.ClearPool(Connection);
+        Connection.Dispose();
     }
 }

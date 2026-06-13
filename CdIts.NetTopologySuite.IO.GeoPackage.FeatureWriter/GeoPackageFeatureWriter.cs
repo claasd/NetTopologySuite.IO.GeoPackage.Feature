@@ -106,8 +106,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
 
     }
 
-    public void AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry")
-        => AddLayerAsync(features, layerName, srsId, geometryFieldName).Wait();
+    public GeoPackageFeatureInfo AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry")
+        => AddLayerAsync(features, layerName, srsId, geometryFieldName).GetAwaiter().GetResult();
     private Types GetFieldType(Type type)
     {
         if (type == typeof(int) || type == typeof(short) || type == typeof(ushort) || type == typeof(uint) || type == typeof(long) ||
