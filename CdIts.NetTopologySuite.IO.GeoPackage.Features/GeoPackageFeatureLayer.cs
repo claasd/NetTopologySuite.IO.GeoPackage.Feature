@@ -2,15 +2,9 @@
 
 namespace CdIts.NetTopologySuite.IO.GeoPackage.Features;
 
-public class GeoPackageFeatureLayer
+public class GeoPackageFeatureLayer(GeoPackageFeatureInfo info, Feature[] features, GeoPackageSpatialReference? geoPackageSpatialReference)
 {
-    public GeoPackageFeatureLayer(GeoPackageFeatureInfo info, Feature[] features, GeoPackageSpatialReference? geoPackageSpatialReference)
-    {
-        Info = info;
-        Features = features;
-        GeoPackageSpatialReference = geoPackageSpatialReference;
-    }
-    public GeoPackageFeatureInfo Info { get; }
-    public Feature[] Features { get; }
-    public GeoPackageSpatialReference? GeoPackageSpatialReference { get; }
+    public GeoPackageFeatureInfo Info { get; } = info;
+    public Feature[] Features { get; } = features;
+    public GeoPackageSpatialReference? GeoPackageSpatialReference { get; } = geoPackageSpatialReference;
 }

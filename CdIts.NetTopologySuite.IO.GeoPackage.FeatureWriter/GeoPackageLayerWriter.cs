@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using CdIts.NetTopologySuite.IO.GeoPackage.Features;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using NetTopologySuite.Features;
@@ -43,7 +44,7 @@ internal class GeoPackageLayerWriter
     }
 
 
-    internal async Task RegisterColumns(string geometryType, bool hasZ = false, bool hasM = false)
+    internal async Task<GeoPackageGeometryInfo> RegisterColumns(string geometryType, bool hasZ = false, bool hasM = false)
     {
         await _conn.ExecuteAsync(
             "INSERT INTO gpkg_geometry_columns (table_name, column_name, geometry_type_name, srs_id, z, m) VALUES (@TableName, @GeometryFieldName, @GeometryType, @SrsId, @HasZ, @HasM)",
@@ -52,6 +53,10 @@ internal class GeoPackageLayerWriter
                 TableName = _layerName, GeometryFieldName = _geometryFieldName, GeometryType = geometryType.ToUpper(), SrsId = _srsId,
                 HasZ = hasZ, HasM = hasM
             });
+        return new GeoPackageGeometryInfo
+        {
+            TableName = _layerName, ColumnName = _geometryFieldName, GeometryTypeName = geometryType.ToUpper(), SrsId = _srsId, Z = hasZ, M = hasM
+        };
     }
 
     internal async Task<Envelope> WriteFeaturesAsync(ICollection<Feature> features)
@@ -64,10 +69,11 @@ internal class GeoPackageLayerWriter
             bbox = bbox.ExpandedBy(feature.BoundingBox ?? feature.Geometry.EnvelopeInternal);
             parameters.Add(ToSqlInsertData(feature));
         }
+
         await _conn.ExecuteAsync(insert, parameters);
         return bbox;
     }
-    
+
     private DynamicParameters ToSqlInsertData(Feature feature)
     {
         var writer = new GeoPackageGeoWriter();
@@ -107,12 +113,20 @@ internal class GeoPackageLayerWriter
         return insert.ToString();
     }
 
-    public async Task UpdateContentsTable(Envelope bbox)
+    public async Task<GeoPackageFeatureInfo> UpdateContentsTable(Envelope bbox)
     {
         await _conn.ExecuteAsync(
             "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id, min_x, min_y, max_x, max_y) VALUES (@TableName, 'features', @TableName, @SrsId, @MinX, @MinY, @MaxX, @MaxY)",
             new { TableName = _layerName, SrsId = _srsId, bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY });
+        return new GeoPackageFeatureInfo
+        {
+            Identifier = _layerName,
+            SrsId = _srsId,
+            TableName = _layerName,
+            MinX = bbox.MinX,
+            MaxX = bbox.MaxX,
+            MinY = bbox.MinY,
+            MaxY = bbox.MaxY
+        };
     }
-
-    
 }

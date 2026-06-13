@@ -9,8 +9,8 @@ namespace CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter;
 
 public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
 {
-    private readonly SqliteConnection _conn;
-    private readonly List<int> _srsIds = new() { 4326 };
+    public SqliteConnection Connection { get; }
+    private readonly List<int> _srsIds = [4326];
 
     internal enum Types
     {
@@ -30,33 +30,33 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
             source.CopyTo(stream);
         }
 
-        _conn = new SqliteConnection($"Data Source={path}");
-        _conn.Open();
+        Connection = new SqliteConnection($"Data Source={path}");
+        Connection.Open();
     }
 
     public async Task CloseAsync()
     {
-        SqliteConnection.ClearPool(_conn);
-        await _conn.CloseAsync();
+        SqliteConnection.ClearPool(Connection);
+        await Connection.CloseAsync();
     }
 
     public void Close()
     {
-        SqliteConnection.ClearPool(_conn);
-        _conn.Close();
+        SqliteConnection.ClearPool(Connection);
+        Connection.Close();
     }
 
     public void Dispose()
     {
-        SqliteConnection.ClearPool(_conn);
-        _conn.Dispose();
+        SqliteConnection.ClearPool(Connection);
+        Connection.Dispose();
     }
 
 
     public async ValueTask DisposeAsync()
     {
-        SqliteConnection.ClearPool(_conn);
-        await _conn.DisposeAsync();
+        SqliteConnection.ClearPool(Connection);
+        await Connection.DisposeAsync();
     }
 
     public async Task AddSrsAsync(int id, string name, string definition, string organization, int? organizationId = null, string description = "")
@@ -70,7 +70,7 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
             SrsName = name,
             OrganizationCoordsysId = organizationId ?? id
         };
-        await _conn.ExecuteAsync(
+        await Connection.ExecuteAsync(
             "INSERT INTO gpkg_spatial_ref_sys (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (@SrsId, @SrsName, @Organization, @OrganizationCoordsysId, @Definition, @Description)",
             srs);
         _srsIds.Add(srs.SrsId);
@@ -79,13 +79,14 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
     public void AddSrs(int id, string name, string definition, string organization, int? organizationId = null, string description = "") =>
         AddSrsAsync(id, name, definition, organization, organizationId, description).Wait();
 
-    public async Task AddLayerAsync(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry",
+    public async Task<GeoPackageFeatureInfo> AddLayerAsync(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry",
         string idFieldName = "id")
     {
         if (features.Count == 0)
             throw new ArgumentException("need at least one feature to add a layer", nameof(features));
         if (!_srsIds.Contains(srsId))
             throw new ArgumentException("srsId must be registered before using it", nameof(srsId));
+        
         var firstFeature = features.First();
         var fieldNames = ConvertFieldNames(firstFeature.Attributes);
         var idField = fieldNames.Keys.FirstOrDefault(p => p.Equals(idFieldName, StringComparison.OrdinalIgnoreCase));
@@ -94,12 +95,15 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         var idType = fieldNames[idField];
         fieldNames.Remove(idField);
 
-        var layerWriter = new GeoPackageLayerWriter(_conn, srsId, layerName, idField, geometryFieldName, fieldNames);
+        var layerWriter = new GeoPackageLayerWriter(Connection, srsId, layerName, idField, geometryFieldName, fieldNames);
         await layerWriter.CreateTableAsync(idType, firstFeature.Geometry.GeometryType);
         var bbox = await layerWriter.WriteFeaturesAsync(features);
-        await layerWriter.UpdateContentsTable(bbox);
-        await layerWriter.RegisterColumns(firstFeature.Geometry.GeometryType, !double.IsNaN(firstFeature.Geometry.Coordinate.Z),
+        var info = await layerWriter.UpdateContentsTable(bbox);
+        info.GeometryInfo = await layerWriter.RegisterColumns(firstFeature.Geometry.GeometryType, !double.IsNaN(firstFeature.Geometry.Coordinate.Z),
             !double.IsNaN(firstFeature.Geometry.Coordinate.M));
+        
+        return info;
+
     }
 
     public void AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry")
@@ -120,4 +124,5 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
 
     private Dictionary<string, Types> ConvertFieldNames(IAttributesTable featureAttributes) =>
         featureAttributes.GetNames().ToDictionary(name => name, name => GetFieldType(featureAttributes.GetType(name)));
+
 }

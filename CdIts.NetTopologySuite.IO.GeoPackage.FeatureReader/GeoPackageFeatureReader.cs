@@ -29,13 +29,16 @@ public class GeoPackageFeatureReader : IDisposable
 
     public IList<GeoPackageFeatureInfo> GetFeatureInfos()
     {
-        return _conn.Query<GeoPackageFeatureInfo>("SELECT * FROM gpkg_contents WHERE data_type = 'features'").AsList();
+        var contents = _conn.Query<GeoPackageFeatureInfo>("SELECT * FROM gpkg_contents WHERE data_type = 'features'").AsList();
+        var geoInfo = _conn.Query<GeoPackageGeometryInfo>("SELECT * FROM gpkg_geometry_columns").AsList();
+        foreach (var info in contents)
+        {
+            info.GeometryInfo = geoInfo.FirstOrDefault(x => x.TableName == info.TableName);
+        }
+        return contents;
     }
 
-    public IList<GeoPackageSpatialReference> GetSpatialReferenceSystems()
-    {
-        return _conn.Query<GeoPackageSpatialReference>("SELECT * FROM gpkg_spatial_ref_sys").AsList();
-    }
+    public IList<GeoPackageSpatialReference> GetSpatialReferenceSystems() => _conn.Query<GeoPackageSpatialReference>("SELECT * FROM gpkg_spatial_ref_sys").AsList();
 
     public Feature[] ReadFeatures(string tableName)
     {
