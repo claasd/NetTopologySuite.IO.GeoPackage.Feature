@@ -17,7 +17,7 @@ internal class GeoPackageLayerWriter
     private readonly string _geometryFieldName;
     private readonly Dictionary<string, GeoPackageFeatureWriter.Types> _fieldNames;
     private readonly int _srsId;
-
+    private readonly GeoPackageGeoWriter _writer = new();
     internal GeoPackageLayerWriter(SqliteConnection conn, int srsId, string layerName, string idField, string geometryFieldName,
         Dictionary<string, GeoPackageFeatureWriter.Types> fieldNames)
     {
@@ -69,15 +69,16 @@ internal class GeoPackageLayerWriter
             bbox = bbox.ExpandedBy(feature.BoundingBox ?? feature.Geometry.EnvelopeInternal);
             parameters.Add(ToSqlInsertData(feature));
         }
-
+        await _conn.ExecuteAsync("BEGIN TRANSACTION");
         await _conn.ExecuteAsync(insert, parameters);
+        await _conn.ExecuteAsync("Commit;");
         return bbox;
     }
 
     private DynamicParameters ToSqlInsertData(Feature feature)
     {
-        var writer = new GeoPackageGeoWriter();
-        var data = writer.Write(feature.Geometry);
+        
+        var data = _writer.Write(feature.Geometry);
         var parameters = new DynamicParameters(new { Geometry = data, Id = feature.Attributes[_idField] });
         var index = 1;
 
