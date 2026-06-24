@@ -99,8 +99,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         await layerWriter.CreateTableAsync(idType, firstFeature.Geometry.GeometryType);
         var bbox = await layerWriter.WriteFeaturesAsync(features);
         var info = await layerWriter.UpdateContentsTable(bbox);
-        info.GeometryInfo = await layerWriter.RegisterColumns(firstFeature.Geometry.GeometryType, !double.IsNaN(firstFeature.Geometry.Coordinate.Z),
-            !double.IsNaN(firstFeature.Geometry.Coordinate.M));
+        info.GeometryInfo = await layerWriter.RegisterColumns(firstFeature.Geometry.GeometryType, !double.IsNaN(firstFeature.Geometry?.Coordinate?.Z ?? double.NaN),
+            !double.IsNaN(firstFeature.Geometry?.Coordinate?.M ?? double.NaN));
         
         return info;
 
