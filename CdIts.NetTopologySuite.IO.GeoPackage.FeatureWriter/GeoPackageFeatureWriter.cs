@@ -12,7 +12,7 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
     public SqliteConnection Connection { get; }
     private readonly List<int> _srsIds = [4326];
 
-    internal enum Types
+    public enum Types
     {
         Integer,
         Real,
@@ -26,7 +26,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         using (var stream = new FileStream(path, FileMode.Create))
         {
             var source =
-                Assembly.GetExecutingAssembly().GetManifestResourceStream("CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter.template.gpkg")!;
+                Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("CdIts.NetTopologySuite.IO.GeoPackage.FeatureWriter.template.gpkg")!;
             source.CopyTo(stream);
         }
 
@@ -59,7 +60,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         await Connection.DisposeAsync();
     }
 
-    public async Task AddSrsAsync(int id, string name, string definition, string organization, int? organizationId = null, string description = "")
+    public async Task AddSrsAsync(int id, string name, string definition, string organization,
+        int? organizationId = null, string description = "")
     {
         var srs = new GeoPackageSpatialReference
         {
@@ -76,41 +78,57 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         _srsIds.Add(srs.SrsId);
     }
 
-    public void AddSrs(int id, string name, string definition, string organization, int? organizationId = null, string description = "") =>
+    public void AddSrs(int id, string name, string definition, string organization, int? organizationId = null,
+        string description = "") =>
         AddSrsAsync(id, name, definition, organization, organizationId, description).Wait();
 
-    public async Task<GeoPackageFeatureInfo> AddLayerAsync(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry",
+    public Task<GeoPackageFeatureInfo> AddLayerAsync(ICollection<Feature> features, string layerName, int srsId = 4326,
+        string geometryFieldName = "geometry",
         string idFieldName = "id")
     {
         if (features.Count == 0)
             throw new ArgumentException("need at least one feature to add a layer", nameof(features));
-        if (!_srsIds.Contains(srsId))
-            throw new ArgumentException("srsId must be registered before using it", nameof(srsId));
-        
+
         var firstFeature = features.First();
         var fieldNames = ConvertFieldNames(firstFeature.Attributes);
-        var idField = fieldNames.Keys.FirstOrDefault(p => p.Equals(idFieldName, StringComparison.OrdinalIgnoreCase));
-        if (idField is null)
-            throw new ArgumentException($"attributes must contain a filed named '{idFieldName}' that will be used as primary key", nameof(features));
-        var idType = fieldNames[idField];
-        fieldNames.Remove(idField);
-
-        var layerWriter = new GeoPackageLayerWriter(Connection, srsId, layerName, idField, geometryFieldName, fieldNames);
-        await layerWriter.CreateTableAsync(idType, firstFeature.Geometry.GeometryType);
-        var bbox = await layerWriter.WriteFeaturesAsync(features);
-        var info = await layerWriter.UpdateContentsTable(bbox);
-        info.GeometryInfo = await layerWriter.RegisterColumns(firstFeature.Geometry.GeometryType, !double.IsNaN(firstFeature.Geometry?.Coordinate?.Z ?? double.NaN),
+        return AddLayerAsync(firstFeature.Geometry.OgcGeometryType, fieldNames, features, layerName, srsId,
+            geometryFieldName, idFieldName, !double.IsNaN(firstFeature.Geometry?.Coordinate?.Z ?? double.NaN),
             !double.IsNaN(firstFeature.Geometry?.Coordinate?.M ?? double.NaN));
-        
-        return info;
-
     }
 
-    public GeoPackageFeatureInfo AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry")
+    public async Task<GeoPackageFeatureInfo> AddLayerAsync(OgcGeometryType geometryType, Dictionary<string, Types> fields,
+        ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry",
+        string idFieldName = "id", bool hasZ = false, bool hasM = false)
+    {
+        if (!_srsIds.Contains(srsId))
+            throw new ArgumentException("srsId must be registered before using it", nameof(srsId));
+
+        var idField = fields.Keys.FirstOrDefault(p => p.Equals(idFieldName, StringComparison.OrdinalIgnoreCase));
+        if (idField is null)
+            throw new ArgumentException(
+                $"attributes must contain a filed named '{idFieldName}' that will be used as primary key",
+                nameof(features));
+        var idType = fields[idField];
+        fields.Remove(idField);
+
+        var layerWriter = new GeoPackageLayerWriter(Connection, srsId, layerName, idField, geometryFieldName, fields);
+        await layerWriter.CreateTableAsync(idType, geometryType);
+        var bbox = await layerWriter.WriteFeaturesAsync(features);
+        var info = await layerWriter.UpdateContentsTable(bbox);
+        info.GeometryInfo = await layerWriter.RegisterColumns(geometryType, hasZ, hasM);
+        return info;
+    }
+
+    public GeoPackageFeatureInfo AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326,
+        string geometryFieldName = "geometry")
         => AddLayerAsync(features, layerName, srsId, geometryFieldName).GetAwaiter().GetResult();
+
+    
+    
     private Types GetFieldType(Type type)
     {
-        if (type == typeof(int) || type == typeof(short) || type == typeof(ushort) || type == typeof(uint) || type == typeof(long) ||
+        if (type == typeof(int) || type == typeof(short) || type == typeof(ushort) || type == typeof(uint) ||
+            type == typeof(long) ||
             type == typeof(ulong) || type == typeof(byte) || type == typeof(sbyte))
             return Types.Integer;
         if (type == typeof(float) || type == typeof(double) || type == typeof(decimal))
@@ -124,5 +142,4 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
 
     private Dictionary<string, Types> ConvertFieldNames(IAttributesTable featureAttributes) =>
         featureAttributes.GetNames().ToDictionary(name => name, name => GetFieldType(featureAttributes.GetType(name)));
-
 }

@@ -29,11 +29,11 @@ internal class GeoPackageLayerWriter
         _fieldNames = fieldNames;
     }
 
-    internal async Task CreateTableAsync(GeoPackageFeatureWriter.Types idType, string geometryType)
+    internal async Task CreateTableAsync(GeoPackageFeatureWriter.Types idType, OgcGeometryType geometryType)
     {
         var createTable =
             new StringBuilder(
-                $@"CREATE TABLE  ""{_layerName}"" (""{_idField}"" {idType.ToString().ToUpper()} PRIMARY KEY, ""{_geometryFieldName}"" {geometryType.ToUpper()}");
+                $@"CREATE TABLE  ""{_layerName}"" (""{_idField}"" {idType.ToString().ToUpper()} PRIMARY KEY, ""{_geometryFieldName}"" {geometryType.ToString().ToUpper()}");
         foreach (var (name, type) in _fieldNames)
         {
             createTable.Append($@", ""{name}"" {type.ToString().ToUpper()}");
@@ -44,18 +44,18 @@ internal class GeoPackageLayerWriter
     }
 
 
-    internal async Task<GeoPackageGeometryInfo> RegisterColumns(string geometryType, bool hasZ = false, bool hasM = false)
+    internal async Task<GeoPackageGeometryInfo> RegisterColumns(OgcGeometryType geometryType, bool hasZ = false, bool hasM = false)
     {
         await _conn.ExecuteAsync(
             "INSERT INTO gpkg_geometry_columns (table_name, column_name, geometry_type_name, srs_id, z, m) VALUES (@TableName, @GeometryFieldName, @GeometryType, @SrsId, @HasZ, @HasM)",
             new
             {
-                TableName = _layerName, GeometryFieldName = _geometryFieldName, GeometryType = geometryType.ToUpper(), SrsId = _srsId,
+                TableName = _layerName, GeometryFieldName = _geometryFieldName, GeometryType = geometryType.ToString().ToUpper(), SrsId = _srsId,
                 HasZ = hasZ, HasM = hasM
             });
         return new GeoPackageGeometryInfo
         {
-            TableName = _layerName, ColumnName = _geometryFieldName, GeometryTypeName = geometryType.ToUpper(), SrsId = _srsId, Z = hasZ, M = hasM
+            TableName = _layerName, ColumnName = _geometryFieldName, GeometryTypeName = geometryType.ToString().ToUpper(), SrsId = _srsId, Z = hasZ, M = hasM
         };
     }
 
