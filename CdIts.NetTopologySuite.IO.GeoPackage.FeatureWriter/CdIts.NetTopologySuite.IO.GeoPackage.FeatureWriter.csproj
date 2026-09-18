@@ -19,10 +19,10 @@
         <EmbeddedResource Include="template.gpkg"/>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="Dapper" Version="2.1.79" />
-      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+      <PackageReference Include="Dapper" Version="2.1.86" />
+      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
       <PackageReference Include="NetTopologySuite.IO.GeoPackage" Version="2.0.0" />
-      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
-      <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
+      <PackageReference Include="SQLitePCLRaw.core" Version="3.0.5" />
     </ItemGroup>
 </Project>
