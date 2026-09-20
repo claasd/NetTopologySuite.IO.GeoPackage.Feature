@@ -18,7 +18,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         Real,
         Text,
         Blob,
-        DateTime
+        DateTime,
+        Boolean
     }
 
     public GeoPackageFeatureWriter(string path)
@@ -38,7 +39,7 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
     public async Task CloseAsync()
     {
         SqliteConnection.ClearPool(Connection);
-        await Connection.CloseAsync();
+        await Connection.CloseAsync().ConfigureAwait(false);
     }
 
     public void Close()
@@ -57,7 +58,7 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         SqliteConnection.ClearPool(Connection);
-        await Connection.DisposeAsync();
+        await Connection.DisposeAsync().ConfigureAwait(false);
     }
 
     public async Task AddSrsAsync(int id, string name, string definition, string organization,
@@ -74,13 +75,17 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
         };
         await Connection.ExecuteAsync(
             "INSERT INTO gpkg_spatial_ref_sys (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (@SrsId, @SrsName, @Organization, @OrganizationCoordsysId, @Definition, @Description)",
-            srs);
+            srs).ConfigureAwait(false);
         _srsIds.Add(srs.SrsId);
     }
 
+    /// <summary>
+    /// Synchronous wrapper over <see cref="AddSrsAsync"/>. Avoid calling this from a context with a
+    /// synchronization context (e.g. classic ASP.NET, WPF/WinForms UI threads) as it can deadlock; prefer the async overload there.
+    /// </summary>
     public void AddSrs(int id, string name, string definition, string organization, int? organizationId = null,
         string description = "") =>
-        AddSrsAsync(id, name, definition, organization, organizationId, description).Wait();
+        AddSrsAsync(id, name, definition, organization, organizationId, description).GetAwaiter().GetResult();
 
     public Task<GeoPackageFeatureInfo> AddLayerAsync(ICollection<Feature> features, string layerName, int srsId = 4326,
         string geometryFieldName = "geometry",
@@ -90,13 +95,15 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
             throw new ArgumentException("need at least one feature to add a layer", nameof(features));
 
         var firstFeature = features.First();
+        if (firstFeature.Geometry is null)
+            throw new ArgumentException("features must have a geometry", nameof(features));
         var fieldNames = ConvertFieldNames(firstFeature.Attributes);
         return AddLayerAsync(firstFeature.Geometry.OgcGeometryType, fieldNames, features, layerName, srsId,
-            geometryFieldName, idFieldName, !double.IsNaN(firstFeature.Geometry?.Coordinate?.Z ?? double.NaN),
-            !double.IsNaN(firstFeature.Geometry?.Coordinate?.M ?? double.NaN));
+            geometryFieldName, idFieldName, !double.IsNaN(firstFeature.Geometry.Coordinate?.Z ?? double.NaN),
+            !double.IsNaN(firstFeature.Geometry.Coordinate?.M ?? double.NaN));
     }
 
-    public async Task<GeoPackageFeatureInfo> AddLayerAsync(OgcGeometryType geometryType, Dictionary<string, Types> fields,
+    public async Task<GeoPackageFeatureInfo> AddLayerAsync(OgcGeometryType geometryType, IReadOnlyDictionary<string, Types> fields,
         ICollection<Feature> features, string layerName, int srsId = 4326, string geometryFieldName = "geometry",
         string idFieldName = "id", bool hasZ = false, bool hasM = false)
     {
@@ -109,16 +116,22 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
                 $"attributes must contain a filed named '{idFieldName}' that will be used as primary key",
                 nameof(features));
         var idType = fields[idField];
-        fields.Remove(idField);
+        var layerFields = new Dictionary<string, Types>(fields);
+        layerFields.Remove(idField);
 
-        var layerWriter = new GeoPackageLayerWriter(Connection, srsId, layerName, idField, geometryFieldName, fields);
-        await layerWriter.CreateTableAsync(idType, geometryType);
-        var bbox = await layerWriter.WriteFeaturesAsync(features);
-        var info = await layerWriter.UpdateContentsTable(bbox);
-        info.GeometryInfo = await layerWriter.RegisterColumns(geometryType, hasZ, hasM);
+        var layerWriter = new GeoPackageLayerWriter(Connection, srsId, layerName, idField, geometryFieldName, layerFields);
+        await layerWriter.CreateTableAsync(idType, geometryType).ConfigureAwait(false);
+        var bbox = await layerWriter.WriteFeaturesAsync(features).ConfigureAwait(false);
+        var info = await layerWriter.UpdateContentsTable(bbox).ConfigureAwait(false);
+        info.GeometryInfo = await layerWriter.RegisterColumns(geometryType, hasZ, hasM).ConfigureAwait(false);
         return info;
     }
 
+    /// <summary>
+    /// Synchronous wrapper over <see cref="AddLayerAsync(ICollection{Feature}, string, int, string, string)"/>.
+    /// Avoid calling this from a context with a synchronization context (e.g. classic ASP.NET, WPF/WinForms UI
+    /// threads) as it can deadlock; prefer the async overload there.
+    /// </summary>
     public GeoPackageFeatureInfo AddLayer(ICollection<Feature> features, string layerName, int srsId = 4326,
         string geometryFieldName = "geometry")
         => AddLayerAsync(features, layerName, srsId, geometryFieldName).GetAwaiter().GetResult();
@@ -137,6 +150,8 @@ public class GeoPackageFeatureWriter : IDisposable, IAsyncDisposable
             return Types.Blob;
         if (type == typeof(DateTime) || type == typeof(DateTimeOffset))
             return Types.DateTime;
+        if (type == typeof(bool))
+            return Types.Boolean;
         return Types.Text;
     }
 

@@ -44,14 +44,24 @@ public class GeoPackageFeatureReader : IDisposable
     {
         var geoColumn = Connection.QuerySingle<string>("SELECT column_name FROM gpkg_geometry_columns WHERE table_name = @tableName", new { tableName });
         var reader = new GeoPackageGeoReader();
-        var lines = Connection.Query($@"SELECT * FROM ""{tableName}""");
+        var lines = Connection.Query($"SELECT * FROM {QuoteIdentifier(tableName)}");
+        var rowIndex = 0;
         return lines.Select(data =>
         {
+            var currentRow = rowIndex++;
             try
             {
-                if (data is not IDictionary<string, object> line || line[geoColumn] is not byte[] geoBytes)
+                if (data is not IDictionary<string, object> line)
                 {
-                    throw new ArgumentNullException(geoColumn, "Geometry column is null");
+                    throw new InvalidDataException($"Row {currentRow} could not be read");
+                }
+                if (line[geoColumn] is null)
+                {
+                    throw new InvalidDataException($"Geometry column '{geoColumn}' is null");
+                }
+                if (line[geoColumn] is not byte[] geoBytes)
+                {
+                    throw new InvalidDataException($"Geometry column '{geoColumn}' does not contain a valid geometry blob");
                 }
                 var geo = reader.Read(geoBytes);
                 var attributes = line.Keys.Where(k => k != geoColumn).ToDictionary(k => k, k => line[k]);
@@ -59,13 +69,15 @@ public class GeoPackageFeatureReader : IDisposable
             }
             catch (Exception e)
             {
-                _logger.LogWarning("Error: {Message} in feature '{TableName}'", e.Message, tableName);
+                _logger.LogWarning("Error: {Message} in feature {RowIndex} of table '{TableName}'", e.Message, currentRow, tableName);
                 if (_failOnInvalidShapes)
                     throw;
                 return null;
             }
-        }).Where(f => f != null).Select(f => f!).ToArray();
+        }).OfType<Feature>().ToArray();
     }
+
+    private static string QuoteIdentifier(string identifier) => $"\"{identifier.Replace("\"", "\"\"")}\"";
 
 
     public static IList<GeoPackageFeatureLayer> ReadGeoPackage(string path) => ReadGeoPackage(path, false);

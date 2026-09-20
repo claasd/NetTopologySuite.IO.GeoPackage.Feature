@@ -33,15 +33,17 @@ internal class GeoPackageLayerWriter
     {
         var createTable =
             new StringBuilder(
-                $@"CREATE TABLE  ""{_layerName}"" (""{_idField}"" {idType.ToString().ToUpper()} PRIMARY KEY, ""{_geometryFieldName}"" {geometryType.ToString().ToUpper()}");
+                $"CREATE TABLE {QuoteIdentifier(_layerName)} ({QuoteIdentifier(_idField)} {idType.ToString().ToUpper()} PRIMARY KEY, {QuoteIdentifier(_geometryFieldName)} {geometryType.ToString().ToUpper()}");
         foreach (var (name, type) in _fieldNames)
         {
-            createTable.Append($@", ""{name}"" {type.ToString().ToUpper()}");
+            createTable.Append($", {QuoteIdentifier(name)} {type.ToString().ToUpper()}");
         }
 
         createTable.Append(')');
-        await _conn.ExecuteAsync(createTable.ToString());
+        await _conn.ExecuteAsync(createTable.ToString()).ConfigureAwait(false);
     }
+
+    private static string QuoteIdentifier(string identifier) => $"\"{identifier.Replace("\"", "\"\"")}\"";
 
 
     internal async Task<GeoPackageGeometryInfo> RegisterColumns(OgcGeometryType geometryType, bool hasZ = false, bool hasM = false)
@@ -52,7 +54,7 @@ internal class GeoPackageLayerWriter
             {
                 TableName = _layerName, GeometryFieldName = _geometryFieldName, GeometryType = geometryType.ToString().ToUpper(), SrsId = _srsId,
                 HasZ = hasZ, HasM = hasM
-            });
+            }).ConfigureAwait(false);
         return new GeoPackageGeometryInfo
         {
             TableName = _layerName, ColumnName = _geometryFieldName, GeometryTypeName = geometryType.ToString().ToUpper(), SrsId = _srsId, Z = hasZ, M = hasM
@@ -69,9 +71,21 @@ internal class GeoPackageLayerWriter
             bbox = bbox.ExpandedBy(feature.BoundingBox ?? feature.Geometry.EnvelopeInternal);
             parameters.Add(ToSqlInsertData(feature));
         }
-        await _conn.ExecuteAsync("BEGIN TRANSACTION");
-        await _conn.ExecuteAsync(insert, parameters);
-        await _conn.ExecuteAsync("Commit;");
+        var transaction = _conn.BeginTransaction();
+        try
+        {
+            await _conn.ExecuteAsync(insert, parameters, transaction).ConfigureAwait(false);
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+        finally
+        {
+            transaction.Dispose();
+        }
         return bbox;
     }
 
@@ -100,12 +114,12 @@ internal class GeoPackageLayerWriter
 
     private string CreateInsertStatement()
     {
-        var insert = new StringBuilder($@"INSERT INTO ""{_layerName}"" (""{_idField}"", ""{_geometryFieldName}""");
+        var insert = new StringBuilder($"INSERT INTO {QuoteIdentifier(_layerName)} ({QuoteIdentifier(_idField)}, {QuoteIdentifier(_geometryFieldName)}");
         var insertValues = new StringBuilder($"(@Id, @Geometry");
         var index = 1;
         foreach (var name in _fieldNames.Keys)
         {
-            insert.Append($@", ""{name}""");
+            insert.Append($", {QuoteIdentifier(name)}");
             insertValues.Append($", @Data{index}");
             index++;
         }
@@ -118,7 +132,7 @@ internal class GeoPackageLayerWriter
     {
         await _conn.ExecuteAsync(
             "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id, min_x, min_y, max_x, max_y) VALUES (@TableName, 'features', @TableName, @SrsId, @MinX, @MinY, @MaxX, @MaxY)",
-            new { TableName = _layerName, SrsId = _srsId, bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY });
+            new { TableName = _layerName, SrsId = _srsId, bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY }).ConfigureAwait(false);
         return new GeoPackageFeatureInfo
         {
             Identifier = _layerName,
